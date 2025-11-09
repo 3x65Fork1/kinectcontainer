@@ -1,6 +1,6 @@
 services:
   kinect-streamer:
-    build: /mnt/REMOTE/v/Kinect-surveillance/ffmpeg-rtsp
+    build: ./ffmpeg-rtsp
     container_name: kinect-streamer
     devices:
        - "/dev/bus/usb:/dev/bus/usb"
@@ -23,7 +23,7 @@ services:
     restart: unless-stopped
 
   motion-detector:
-    build: /mnt/REMOTE/v/Kinect-surveillance/motion-detector
+    build: ./motion-detector
     container_name: motion-detector
     depends_on:
       - kinect-streamer
@@ -33,12 +33,12 @@ services:
     restart: unless-stopped
 
   camera-ui:
-    build: /mnt/REMOTE/v/Kinect-surveillance/camera-ui
+    build: ./camera-ui
     container_name: camera-ui
     ports:
       - "8081:8081"
     volumes:
-#      - /mnt/REMOTE/v/Kinect-surveillance/camera-ui:/app/.camera.ui:rw
+#      - ./camera-ui:/app/.camera.ui:rw
       - /home/v/Kinect-surveillance/camera-ui:/root/.camera.ui:rw
     environment:
       - CAMERAS__0__NAME=Kinect
