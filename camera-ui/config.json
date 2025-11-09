@@ -1,0 +1,57 @@
+{
+  "logLevel": "info",
+  "port": 8081,
+  "atHomeSwitch": false,
+  "options": {
+    "videoProcessor": "/usr/local/lib/node_modules/camera.ui/node_modules/ffmpeg-for-homebridge/ffmpeg"
+  },
+  "ssl": {
+    "active": false
+  },
+  "http": {
+    "active": false,
+    "port": 7272,
+    "localhttp": false
+  },
+  "smtp": {
+    "active": false,
+    "port": 2727,
+    "space_replace": "+"
+  },
+  "ftp": {
+    "active": false,
+    "useFile": false,
+    "port": 5050
+  },
+  "mqtt": {
+    "active": false,
+    "tls": false,
+    "port": 1883
+  },
+  "cameras": [
+    {
+      "name": "Kinect",
+      "videoConfig": {
+        "source": "-rtsp_transport tcp -stimeout 5000000 -i rtsp://rtsp-server:8554/kinect",
+        "vcodec": "copy",
+        "audio": false,
+        "prebuffering": false,
+        "maxWidth": 640,
+        "maxHeight": 480,
+        "maxFPS": 15,
+        "subSource": "-rtsp_transport tcp -stimeout 5000000 -i rtsp://rtsp-server:8554/kinect",
+        "stillImageSource": "-rtsp_transport tcp -stimeout 5000000 -i rtsp://rtsp-server:8554/kinect"
+      },
+      "recordOnMovement": true,
+      "motionTimeout": 15,
+      "prebufferLength": 4,
+      "videoanalysis": {
+        "active": false
+      },
+      "smtp": {
+        "email": "Kinect"
+      },
+      "mqtt": {}
+    }
+  ]
+}

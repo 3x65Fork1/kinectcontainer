@@ -1,0 +1,19 @@
+[37m[11/8/2025, 4:14:49 PM] [39m[36m[camera.ui] [39mKinect: Setting up camera, please be patient...
+[37m[11/8/2025, 4:14:49 PM] [39m[36m[camera.ui] [39mcamera.ui v1.1.17 is listening on port 8081 (http)
+[37m[11/8/2025, 4:15:24 PM] [39m[36m[camera.ui] [39m[33m[103m[30m[1m WARNING [22m[39m[33m[49m Interface: Failed login attempt! If you have forgotten your password you can reset to the default of master/master by removing the user in the "database.json" file (/root/.camera.ui/database/database.json) and then restarting camera.ui[39m
+[37m[11/8/2025, 4:18:15 PM] [39m[36m[camera.ui] [39m[33m[103m[30m[1m WARNING [22m[39m[33m[49m System: Got SIGTERM, shutting down camera.ui...[39m
+[37m[11/8/2025, 4:18:57 PM] [39m[36m[camera.ui] [39mKinect: Setting up camera, please be patient...
+[37m[11/8/2025, 4:18:57 PM] [39m[36m[camera.ui] [39mcamera.ui v1.1.17 is listening on port 8081 (http)
+[37m[11/8/2025, 4:22:33 PM] [39m[36m[camera.ui] [39m[33m[103m[30m[1m WARNING [22m[39m[33m[49m System: Got SIGTERM, shutting down camera.ui...[39m
+[37m[11/8/2025, 4:23:31 PM] [39m[36m[camera.ui] [39mKinect: Setting up camera, please be patient...
+[37m[11/8/2025, 4:23:31 PM] [39m[36m[camera.ui] [39mcamera.ui v1.1.17 is listening on port 8081 (http)
+[37m[11/8/2025, 4:24:48 PM] [39m[36m[camera.ui] [39m[33m[103m[30m[1m WARNING [22m[39m[33m[49m System: Got SIGTERM, shutting down camera.ui...[39m
+[37m[11/8/2025, 4:24:57 PM] [39m[36m[camera.ui] [39mKinect: Setting up camera, please be patient...
+[37m[11/8/2025, 4:24:57 PM] [39m[36m[camera.ui] [39mcamera.ui v1.1.17 is listening on port 8081 (http)
+[37m[11/8/2025, 4:25:37 PM] [39m[36m[camera.ui] [39m[33m[103m[30m[1m WARNING [22m[39m[33m[49m System: Got SIGTERM, shutting down camera.ui...[39m
+[37m[11/8/2025, 4:28:06 PM] [39m[36m[camera.ui] [39mKinect: Setting up camera, please be patient...
+[37m[11/8/2025, 4:28:06 PM] [39m[36m[camera.ui] [39mcamera.ui v1.1.17 is listening on port 8081 (http)
+[37m[11/8/2025, 4:31:01 PM] [39m[36m[camera.ui] [39m[33m[103m[30m[1m WARNING [22m[39m[33m[49m System: Got SIGTERM, shutting down camera.ui...[39m
+[37m[11/8/2025, 4:31:32 PM] [39m[36m[camera.ui] [39mKinect: Setting up camera, please be patient...
+[37m[11/8/2025, 4:31:32 PM] [39m[36m[camera.ui] [39mcamera.ui v1.1.17 is listening on port 8081 (http)
+[37m[11/8/2025, 4:37:40 PM] [39m[36m[camera.ui] [39m[33m[103m[30m[1m WARNING [22m[39m[33m[49m System: Got SIGTERM, shutting down camera.ui...[39m

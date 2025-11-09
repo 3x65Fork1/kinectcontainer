@@ -1,0 +1,175 @@
+{
+  "version": "1.1.17",
+  "firstStart": true,
+  "cameras": [
+    {
+      "name": "Kinect",
+      "videoConfig": {
+        "source": "-rtsp_transport tcp -stimeout 5000000 -i rtsp://rtsp-server:8554/kinect",
+        "vcodec": "copy",
+        "audio": false,
+        "prebuffering": false,
+        "maxWidth": 640,
+        "maxHeight": 480,
+        "maxFPS": 15,
+        "subSource": "-rtsp_transport tcp -stimeout 5000000 -i rtsp://rtsp-server:8554/kinect",
+        "stillImageSource": "-rtsp_transport tcp -stimeout 5000000 -i rtsp://rtsp-server:8554/kinect"
+      },
+      "recordOnMovement": true,
+      "motionTimeout": 15,
+      "prebufferLength": 4,
+      "videoanalysis": {
+        "active": false
+      },
+      "smtp": {
+        "email": "Kinect"
+      },
+      "mqtt": {}
+    }
+  ],
+  "notifications": [],
+  "users": [
+    {
+      "id": 1,
+      "username": "master",
+      "password": "VPdA3R0UhHzDbMVheHGgMQ==$zdQm60vDOHZAJVjmUBzmt80rRKkcSL7NPxIdbMcW8vFT7hiQjyIRntt1ickmdP+19EQSjLl2T87ZtAOZluqM5Q==",
+      "sessionTimer": 14400,
+      "photo": "no_img.png",
+      "permissionLevel": [
+        "admin"
+      ]
+    }
+  ],
+  "settings": {
+    "aws": {
+      "active": false,
+      "accessKeyId": "",
+      "secretAccessKey": "",
+      "region": "",
+      "contingent_total": 5000,
+      "contingent_left": 5000,
+      "last_rekognition": ""
+    },
+    "cameras": [
+      {
+        "name": "Kinect",
+        "room": "Standard",
+        "resolution": "1280x720",
+        "pingTimeout": 1,
+        "streamTimeout": 60,
+        "audio": false,
+        "telegramType": "Snapshot",
+        "alexa": false,
+        "webhookUrl": "",
+        "mqttTopic": "camera.ui/motion",
+        "privacyMode": false,
+        "camview": {
+          "favourite": true,
+          "live": true,
+          "snapshotTimer": 60
+        },
+        "dashboard": {
+          "live": true,
+          "snapshotTimer": 60
+        },
+        "rekognition": {
+          "active": false,
+          "confidence": 90,
+          "labels": []
+        },
+        "videoanalysis": {
+          "forceCloseTimer": 3,
+          "dwellTimer": 60,
+          "sensitivity": 75,
+          "difference": 5,
+          "regions": [
+            {
+              "finished": true,
+              "coords": [
+                [
+                  0,
+                  100
+                ],
+                [
+                  0,
+                  0
+                ],
+                [
+                  100,
+                  0
+                ],
+                [
+                  100,
+                  100
+                ]
+              ]
+            }
+          ]
+        }
+      }
+    ],
+    "general": {
+      "atHome": false,
+      "exclude": [],
+      "rooms": [
+        "Standard"
+      ],
+      "automation": {
+        "active": false,
+        "atHome": false,
+        "exclude": [],
+        "startTime": "08:00",
+        "endTime": "17:00"
+      }
+    },
+    "notifications": {
+      "active": false,
+      "removeAfter": 3,
+      "alexa": {
+        "active": false,
+        "domain": "",
+        "serialNr": "",
+        "message": "",
+        "startTime": "00:00",
+        "endTime": "23:59",
+        "auth": {
+          "cookie": "",
+          "macDms": {
+            "device_private_key": "",
+            "adp_token": ""
+          }
+        },
+        "proxy": {
+          "port": 9494
+        }
+      },
+      "telegram": {
+        "active": false,
+        "token": "",
+        "chatID": "",
+        "message": ""
+      },
+      "webhook": {
+        "active": false
+      }
+    },
+    "recordings": {
+      "active": false,
+      "type": "Snapshot",
+      "timer": 10,
+      "path": "/root/.camera.ui/recordings",
+      "removeAfter": 7
+    },
+    "webpush": {
+      "publicKey": "BK9XfVhN68gWeL4jGvH4WZmqrJk2wCZOTdmEqVAPi4S54NdIryWgYrRt-iNiU15XpnBu-7vJ3GsDeZEfGOy19mc",
+      "privateKey": "DlUO_Tx8MJtnze2EgWMFPWLK_LpIuM30IGjJL1b50ZU",
+      "subscription": false
+    },
+    "widgets": {
+      "options": {
+        "locked": false
+      },
+      "items": []
+    }
+  }
+}
