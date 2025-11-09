@@ -45,3 +45,8 @@ services:
       - CAMERAS__0__STREAM=rtsp://rtsp-server:8554/kinect
     user: root
     restart: unless-stopped
+    logging:
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "5"
