@@ -9,39 +9,37 @@ from datetime import datetime
 # === Config ===
 PORT = int(os.getenv("RTSP_PORT", "8554"))
 STREAM_NAME = os.getenv("STREAM_NAME", "stream")
-DEPTH_THRESHOLD = int(os.getenv("DEPTH_THRESHOLD", "1200"))  # in mm
+DEPTH_THRESHOLD = int(os.getenv("DEPTH_THRESHOLD", "1200"))  # mm
 RECORDINGS_DIR = os.getenv("RECORDINGS_DIR", "/camera-ui/recordings")
 MIN_EVENT_DURATION = float(os.getenv("MIN_EVENT_DURATION", "5"))  # seconds
 
 os.makedirs(RECORDINGS_DIR, exist_ok=True)
 
 def start_ffmpeg_stream():
-    """Start RTSP stream for live feed (RGB) with 180° flip."""
+    """Start RTSP stream for live feed (RGB) with correct flip."""
     print("📡 Starting RTSP stream...")
     return subprocess.Popen([
         "ffmpeg",
         "-f", "video4linux2", "-i", "/dev/video0",
-        "-vf", "transpose=2,transpose=2",  # 180° flip
+        "-vf", "vflip",  # Correct upside-down feed
         "-vcodec", "libx264", "-preset", "ultrafast", "-tune", "zerolatency",
         "-f", "rtsp", f"rtsp://0.0.0.0:{PORT}/{STREAM_NAME}"
     ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 def start_recording():
-    """Start recording the RGB feed to a file."""
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = os.path.join(RECORDINGS_DIR, f"record_{ts}.mp4")
     print(f"🎥 Starting recording → {filename}")
     proc = subprocess.Popen([
         "ffmpeg",
         "-f", "video4linux2", "-i", "/dev/video0",
-        "-vf", "transpose=2,transpose=2",  # 180° flip
+        "-vf", "vflip",
         "-vcodec", "libx264", "-preset", "ultrafast", "-tune", "zerolatency",
         filename
     ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     return proc, filename
 
 def stop_recording(proc):
-    """Stop the FFmpeg recording process."""
     print("🛑 Stopping recording...")
     proc.terminate()
     try:
@@ -66,15 +64,13 @@ def main():
 
             min_depth = np.min(depth_frame)
             avg_depth = np.mean(depth_frame)
-            print(f"Depth min: {min_depth} mm, avg: {avg_depth:.1f} mm")
+            print(f"Depth min: {min_depth} mm, avg: {avg_depth:.1f} mm", flush=True)
 
-            # Trigger recording if min depth below threshold
             if min_depth < DEPTH_THRESHOLD and not triggered:
                 triggered = True
                 last_trigger_time = time.time()
                 recording_proc, filename = start_recording()
 
-            # Stop recording if depth rises above threshold
             elif triggered and min_depth > DEPTH_THRESHOLD:
                 if time.time() - last_trigger_time > MIN_EVENT_DURATION:
                     triggered = False
@@ -88,7 +84,7 @@ def main():
         if recording_proc:
             stop_recording(recording_proc)
         rtsp_proc.terminate()
-        print("✅ Kinect streamer stopped.")
+        print("✅ Kinect streamer stopped.", flush=True)
 
 if __name__ == "__main__":
     main()
