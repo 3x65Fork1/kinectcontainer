@@ -4,15 +4,22 @@ services:
     container_name: kinect-streamer
     devices:
        - "/dev/bus/usb:/dev/bus/usb"
+       - /dev/video0
     privileged: true
     security_opt:
       - apparmor:unconfined
     environment:
       - RTSP_TARGET=rtsp://rtsp-server:8554/kinect
-      - FLIP_ANGLE=180
       - LIBUSB_DEBUG=4
+      - RTSP_PORT=8554
+      - STREAM_NAME=stream
+      - DEPTH_THRESHOLD=1200
+      - RECORDINGS_DIR=/camera-ui/recordings
     user: root
+    volumes:
+      - ./camera-ui/recordings:/camera-ui/recordings
     restart: unless-stopped
+    
 
   rtsp-server:
     image: bluenviron/mediamtx:latest
