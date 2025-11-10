@@ -5,7 +5,7 @@ RUN apt-get update && apt-get install -y \
     libfreenect-dev ffmpeg v4l-utils \
     && rm -rf /var/lib/apt/lists/*
 
-COPY start.sh /start.sh
-RUN chmod +x /start.sh
+COPY start.py /start.py
+RUN chmod +x /start.py
 
-ENTRYPOINT ["/start.sh"]
+ENTRYPOINT ["/start.py"]
