@@ -1,16 +1,6 @@
-KINECT project
-Structure 
+A kinect docker compose stack that makes the kinect into a surveillance camera. 
+depth based motion detection on the way. 
 
-
-├── camera-ui
-│   ├── main Webui, found here: https://github.com/seydx/camera.ui 
-├
-├── ffmpeg-rtsp
-│   ├── takes the ffmpeg output and converts it to RTSP - which cmaera.ui accepts
-│ 
-├── kinect-streamer
-│   ├── takes raw kinect stremaing data and converts to h.264 using ffmpeg 
-│  
-└── motion-detector
-    ├── broken for now :[ 
-
+uses camera.ui: https://github.com/seydx/camera.ui.git
+uses ffmpeg: https://ffmpeg.org/
+uses libfreenect: https://github.com/OpenKinect/libfreenect.git
