@@ -10,7 +10,7 @@ services:
       - apparmor:unconfined
     environment:
       - RTSP_TARGET=rtsp://rtsp-server:8554/kinect
-      - LIBUSB_DEBUG=4
+      - LIBUSB_DEBUG=0
       - RTSP_PORT=8554
       - STREAM_NAME=stream
       - DEPTH_THRESHOLD=1200
@@ -27,16 +27,6 @@ services:
     ports:
       - "8554:8554"      # RTSP port
       - "8555:8555"      # Optional: RTSP-over-HTTP, if you want
-    restart: unless-stopped
-
-  motion-detector:
-    build: ./motion-detector
-    container_name: motion-detector
-    depends_on:
-      - kinect-streamer
-    environment:
-      #- NVR_API_URL=http://your-nvr.local/api/start_recording
-      - RTSP_STREAM=rtsp://rtsp-server:8554/kinect
     restart: unless-stopped
 
   camera-ui:
