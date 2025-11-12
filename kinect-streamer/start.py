@@ -15,10 +15,6 @@ MIN_EVENT_DURATION = float(os.getenv("MIN_EVENT_DURATION", "5"))  # seconds
 
 os.makedirs(RECORDINGS_DIR, exist_ok=True)
 
-def set_kinect_led(state):
-    """Set Kinect LED state."""
-    freenect.set_led(state)
-
 def start_ffmpeg_stream():
     """Start FFmpeg RTSP stream via stdin."""
     cmd = [
@@ -28,7 +24,7 @@ def start_ffmpeg_stream():
         "-s", "640x480",
         "-r", "30",
         "-i", "-",  # stdin
-        #"-vf", "transpose=1",  # rotate 90° clockwise
+        "-vf", "vflip",  # upside-down for RTSP as well if desired
         "-vcodec", "libx264",
         "-preset", "ultrafast",
         "-tune", "zerolatency",
@@ -47,7 +43,7 @@ def start_recording():
         "-s", "640x480",
         "-r", "30",
         "-i", "-",  # stdin
-        "-vf", "transpose=1",
+        "-vf", "vflip",  # upside-down for recording
         "-vcodec", "libx264",
         "-preset", "ultrafast",
         "-tune", "zerolatency",
@@ -55,19 +51,22 @@ def start_recording():
     ]
     proc = subprocess.Popen(cmd, stdin=subprocess.PIPE)
     print(f"🎥 Recording started → {filename}", flush=True)
-    set_kinect_led(freenect.LED_RED)  # LED RED when recording
+    # Turn Kinect LED red
+    freenect.set_led(freenect.LED_RED)
+    freenect.update_led()
     return proc, filename
 
 def stop_recording(proc):
     print("🛑 Stopping recording...", flush=True)
     proc.stdin.close()
     proc.wait()
-    set_kinect_led(freenect.LED_GREEN)  # LED GREEN when recording stops
+    # Turn Kinect LED off
+    freenect.set_led(freenect.LED_OFF)
+    freenect.update_led()
 
 def main():
     print("🤖 Kinect streamer starting...", flush=True)
     ffmpeg_proc = start_ffmpeg_stream()
-    set_kinect_led(freenect.LED_GREEN)  # default LED GREEN
     recording_proc = None
     triggered = False
     last_trigger_time = 0
@@ -81,22 +80,28 @@ def main():
                 time.sleep(0.1)
                 continue
 
+            # Convert RGB → BGR
+            rgb_frame_bgr = np.ascontiguousarray(rgb_frame[:, :, ::-1])
+
             # Write to RTSP stream
             try:
-                ffmpeg_proc.stdin.write(rgb_frame.tobytes())
+                ffmpeg_proc.stdin.write(rgb_frame_bgr.tobytes())
             except BrokenPipeError:
-                print("⚠️ FFmpeg pipe broken.", flush=True)
+                print("⚠️ FFmpeg RTSP pipe broken.", flush=True)
                 break
 
+            # Depth check
             min_depth = np.min(depth_frame)
             avg_depth = np.mean(depth_frame)
             print(f"Depth min: {min_depth:.0f} mm, avg: {avg_depth:.1f} mm", flush=True)
 
+            # Start recording
             if min_depth < DEPTH_THRESHOLD and not triggered:
                 triggered = True
                 last_trigger_time = time.time()
                 recording_proc, _ = start_recording()
 
+            # Stop recording
             elif triggered and min_depth > DEPTH_THRESHOLD:
                 if time.time() - last_trigger_time > MIN_EVENT_DURATION:
                     triggered = False
@@ -106,7 +111,11 @@ def main():
 
             # Write to recording if active
             if recording_proc:
-                recording_proc.stdin.write(rgb_frame.tobytes())
+                try:
+                    recording_proc.stdin.write(rgb_frame_bgr.tobytes())
+                except BrokenPipeError:
+                    print("⚠️ FFmpeg recording pipe broken.", flush=True)
+                    recording_proc = None
 
             time.sleep(1/30)  # ~30 FPS
 
@@ -115,7 +124,6 @@ def main():
             stop_recording(recording_proc)
         ffmpeg_proc.stdin.close()
         ffmpeg_proc.wait()
-        set_kinect_led(freenect.LED_OFF)
         print("✅ Kinect streamer stopped.", flush=True)
 
 if __name__ == "__main__":
