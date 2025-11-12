@@ -20,6 +20,11 @@ services:
       - ./camera-ui/recordings:/camera-ui/recordings
     restart: unless-stopped
     
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "4"
 
   rtsp-server:
     image: bluenviron/mediamtx:latest
