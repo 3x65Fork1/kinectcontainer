@@ -77,9 +77,16 @@ def main():
                 time.sleep(0.1)
                 continue
 
-            # Convert RGB → BGR
-            rgb_frame_bgr = np.ascontiguousarray(rgb_frame[:, :, ::-1])
+            # Flip frame upside-down and convert RGB→BGR
+rgb_frame_bgr = np.ascontiguousarray(rgb_frame[::-1, :, ::-1])
 
+# Send to RTSP
+ffmpeg_proc.stdin.write(rgb_frame_bgr.tobytes())
+
+# Send to recording if active
+if recording_proc:
+    recording_proc.stdin.write(rgb_frame_bgr.tobytes())
+    
             # Write to RTSP stream
             try:
                 ffmpeg_proc.stdin.write(rgb_frame_bgr.tobytes())
