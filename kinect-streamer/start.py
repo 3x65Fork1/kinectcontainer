@@ -15,6 +15,10 @@ MIN_EVENT_DURATION = float(os.getenv("MIN_EVENT_DURATION", "5"))  # seconds
 
 os.makedirs(RECORDINGS_DIR, exist_ok=True)
 
+def set_kinect_led(state):
+    """Set Kinect LED state."""
+    freenect.set_led(state)
+
 def start_ffmpeg_stream():
     """Start FFmpeg RTSP stream via stdin."""
     cmd = [
@@ -24,7 +28,7 @@ def start_ffmpeg_stream():
         "-s", "640x480",
         "-r", "30",
         "-i", "-",  # stdin
-        "-vf", "transpose=1",  # rotate 90° clockwise
+        #"-vf", "transpose=1",  # rotate 90° clockwise
         "-vcodec", "libx264",
         "-preset", "ultrafast",
         "-tune", "zerolatency",
@@ -51,16 +55,19 @@ def start_recording():
     ]
     proc = subprocess.Popen(cmd, stdin=subprocess.PIPE)
     print(f"🎥 Recording started → {filename}", flush=True)
+    set_kinect_led(freenect.LED_RED)  # LED RED when recording
     return proc, filename
 
 def stop_recording(proc):
     print("🛑 Stopping recording...", flush=True)
     proc.stdin.close()
     proc.wait()
+    set_kinect_led(freenect.LED_GREEN)  # LED GREEN when recording stops
 
 def main():
     print("🤖 Kinect streamer starting...", flush=True)
     ffmpeg_proc = start_ffmpeg_stream()
+    set_kinect_led(freenect.LED_GREEN)  # default LED GREEN
     recording_proc = None
     triggered = False
     last_trigger_time = 0
@@ -108,6 +115,7 @@ def main():
             stop_recording(recording_proc)
         ffmpeg_proc.stdin.close()
         ffmpeg_proc.wait()
+        set_kinect_led(freenect.LED_OFF)
         print("✅ Kinect streamer stopped.", flush=True)
 
 if __name__ == "__main__":
