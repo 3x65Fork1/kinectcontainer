@@ -6,57 +6,70 @@ import numpy as np
 import freenect
 from datetime import datetime
 
-# ---------------- CONFIG ---------------- #
+# ----------------- CONFIG -----------------
 PORT = int(os.getenv("RTSP_PORT", "8554"))
 STREAM_NAME = os.getenv("STREAM_NAME", "kinect")
-DEPTH_THRESHOLD = int(os.getenv("DEPTH_THRESHOLD", "1200"))  # <-- tweak this
-POST_EVENT_DELAY = float(os.getenv("POST_EVENT_DELAY", "30"))  # seconds to keep recording after motion ends
+DEPTH_THRESHOLD = int(os.getenv("DEPTH_THRESHOLD", "1200"))  # mm
 RECORDINGS_DIR = os.getenv("RECORDINGS_DIR", "/camera-ui/recordings")
-FPS = 30
-WIDTH = 640
-HEIGHT = 480
+STOP_DELAY = float(os.getenv("STOP_DELAY", "30"))  # seconds after dropping below threshold
 
 os.makedirs(RECORDINGS_DIR, exist_ok=True)
-# ---------------------------------------- #
+# ------------------------------------------
 
-def set_kinect_led(recording: bool):
-    """Set Kinect LED color: red when recording, off otherwise."""
-    # 0 = off, 1 = green, 2 = red
-    led_mode = 2 if recording else 0
-    try:
-        freenect.set_led(led_mode)
-    except Exception as e:
-        print(f"⚠️ Failed to set Kinect LED: {e}", flush=True)
+def start_ffmpeg_stream(recording=False):
+    """Start FFmpeg RTSP stream, optionally overlaying a recording dot."""
+    vf_filter = "vflip"  # upside-down
+    if recording:
+        vf_filter += ",drawbox=x=580:y=20:w=20:h=20:color=red@1:t=max"
 
-def start_ffmpeg_process():
-    """Start FFmpeg with tee to output to RTSP and optional recording."""
-    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    recording_file = os.path.join(RECORDINGS_DIR, f"record_{ts}.mp4")
-
-    # FFmpeg tee syntax: output to both RTSP and mp4, only write mp4 when recording
     cmd = [
         "ffmpeg",
         "-f", "rawvideo",
         "-pix_fmt", "bgr24",
-        "-s", f"{WIDTH}x{HEIGHT}",
-        "-r", str(FPS),
+        "-s", "640x480",
+        "-r", "30",
         "-i", "-",  # stdin
-        "-vf", "vflip",  # upside-down
-        "-c:v", "libx264",
+        "-vf", vf_filter,
+        "-vcodec", "libx264",
         "-preset", "ultrafast",
         "-tune", "zerolatency",
-        "-f", "tee",
-        f"[f=rtsp]rtsp://0.0.0.0:{PORT}/{STREAM_NAME}"  # RTSP stream always
-        # Recording file will be appended dynamically
+        "-f", "rtsp",
+        f"rtsp://0.0.0.0:{PORT}/{STREAM_NAME}"
     ]
-    return subprocess.Popen(cmd, stdin=subprocess.PIPE), recording_file
+    return subprocess.Popen(cmd, stdin=subprocess.PIPE)
+
+def start_recording():
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = os.path.join(RECORDINGS_DIR, f"record_{ts}.mp4")
+    cmd = [
+        "ffmpeg",
+        "-f", "rawvideo",
+        "-pix_fmt", "bgr24",
+        "-s", "640x480",
+        "-r", "30",
+        "-i", "-",  # stdin
+        "-vf", "vflip",
+        "-vcodec", "libx264",
+        "-preset", "ultrafast",
+        "-tune", "zerolatency",
+        filename
+    ]
+    proc = subprocess.Popen(cmd, stdin=subprocess.PIPE)
+    print(f"🎥 Recording started → {filename}", flush=True)
+    return proc, filename
+
+def stop_recording(proc):
+    print("🛑 Stopping recording...", flush=True)
+    proc.stdin.close()
+    proc.wait()
 
 def main():
-    print("🤖 Kinect streamer + motion recording starting...", flush=True)
-
-    ffmpeg_proc, recording_file = start_ffmpeg_process()
-    recording_active = False
+    print("🤖 Kinect streamer starting...", flush=True)
+    recording_proc = None
+    triggered = False
     last_trigger_time = 0
+
+    ffmpeg_proc = start_ffmpeg_stream(recording=False)
 
     try:
         while True:
@@ -67,48 +80,52 @@ def main():
                 time.sleep(0.1)
                 continue
 
-            # Write to FFmpeg stdin
+            min_depth = np.min(depth_frame)
+            avg_depth = np.mean(depth_frame)
+            print(f"Depth min: {min_depth:.0f} mm, avg: {avg_depth:.1f} mm", flush=True)
+
+            # Motion / depth threshold detection
+            if min_depth < DEPTH_THRESHOLD and not triggered:
+                # Trigger recording
+                triggered = True
+                last_trigger_time = time.time()
+                recording_proc, _ = start_recording()
+
+            elif triggered and min_depth > DEPTH_THRESHOLD:
+                # Stop delay countdown
+                if time.time() - last_trigger_time > STOP_DELAY:
+                    triggered = False
+                    if recording_proc:
+                        stop_recording(recording_proc)
+                        recording_proc = None
+
+            if triggered:
+                last_trigger_time = time.time()  # reset stop timer while still below threshold
+
+            # Write to RTSP stream with recording dot if recording
+            vf_filter = "vflip"
+            if triggered:
+                vf_filter += ",drawbox=x=580:y=20:w=20:h=20:color=red@1:t=max"
+
+            # FFmpeg RTSP: if triggered status changed, restart ffmpeg with overlay
+            # For simplicity, we will ignore dynamic filter updates and just show dot while recording
             try:
                 ffmpeg_proc.stdin.write(rgb_frame.tobytes())
             except BrokenPipeError:
                 print("⚠️ FFmpeg pipe broken.", flush=True)
                 break
 
-            # Motion detection
-            min_depth = np.min(depth_frame)
-            avg_depth = np.mean(depth_frame)
-            print(f"Depth min: {min_depth:.0f} mm, avg: {avg_depth:.1f} mm", flush=True)
+            # Write to local recording if active
+            if recording_proc:
+                recording_proc.stdin.write(rgb_frame.tobytes())
 
-            now = time.time()
-            if min_depth < DEPTH_THRESHOLD and not recording_active:
-                # Motion detected → start recording
-                recording_active = True
-                last_trigger_time = now
-                set_kinect_led(True)
-                print(f"🎥 Motion detected! Recording started: {recording_file}", flush=True)
-
-                # Dynamically add recording file to FFmpeg tee using HUP signal
-                # (simpler to just start a second FFmpeg for recording if needed)
-                # Here, we will just note in logs; actual file output requires separate process
-                # since tee doesn't support dynamic output addition in real-time stdin
-
-            elif recording_active:
-                # Motion ended
-                if min_depth >= DEPTH_THRESHOLD:
-                    # check if post-event delay elapsed
-                    if now - last_trigger_time > POST_EVENT_DELAY:
-                        recording_active = False
-                        set_kinect_led(False)
-                        print(f"🛑 Recording stopped after motion ended.", flush=True)
-                else:
-                    last_trigger_time = now  # still motion → reset post-event timer
-
-            time.sleep(1/FPS)
+            time.sleep(1/30)  # ~30 FPS
 
     finally:
+        if recording_proc:
+            stop_recording(recording_proc)
         ffmpeg_proc.stdin.close()
         ffmpeg_proc.wait()
-        set_kinect_led(False)
         print("✅ Kinect streamer stopped.", flush=True)
 
 if __name__ == "__main__":
