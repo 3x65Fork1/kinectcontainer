@@ -16,7 +16,7 @@ MIN_EVENT_DURATION = float(os.getenv("MIN_EVENT_DURATION", "5"))  # seconds
 os.makedirs(RECORDINGS_DIR, exist_ok=True)
 
 def start_ffmpeg_stream():
-    """Start FFmpeg RTSP stream via stdin."""
+    """Start FFmpeg RTSP stream via stdin (expects pre-flipped BGR frames)."""
     cmd = [
         "ffmpeg",
         "-f", "rawvideo",
@@ -24,7 +24,6 @@ def start_ffmpeg_stream():
         "-s", "640x480",
         "-r", "30",
         "-i", "-",  # stdin
-        "-vf", "vflip",  # upside-down for RTSP as well if desired
         "-vcodec", "libx264",
         "-preset", "ultrafast",
         "-tune", "zerolatency",
@@ -33,7 +32,9 @@ def start_ffmpeg_stream():
     ]
     return subprocess.Popen(cmd, stdin=subprocess.PIPE)
 
+
 def start_recording():
+    """Start recording to MP4 file (expects pre-flipped BGR frames)."""
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = os.path.join(RECORDINGS_DIR, f"record_{ts}.mp4")
     cmd = [
@@ -43,7 +44,6 @@ def start_recording():
         "-s", "640x480",
         "-r", "30",
         "-i", "-",  # stdin
-        "-vf", "vflip",  # upside-down for recording
         "-vcodec", "libx264",
         "-preset", "ultrafast",
         "-tune", "zerolatency",
@@ -51,9 +51,6 @@ def start_recording():
     ]
     proc = subprocess.Popen(cmd, stdin=subprocess.PIPE)
     print(f"🎥 Recording started → {filename}", flush=True)
-    # Turn Kinect LED red
-    freenect.set_led(freenect.LED_RED)
-    freenect.update_led()
     return proc, filename
 
 def stop_recording(proc):
