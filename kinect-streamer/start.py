@@ -15,8 +15,10 @@ MIN_EVENT_DURATION = float(os.getenv("MIN_EVENT_DURATION", "5"))  # seconds
 
 os.makedirs(RECORDINGS_DIR, exist_ok=True)
 
+# --- FFmpeg helpers ---
+
 def start_ffmpeg_stream():
-    """Start FFmpeg RTSP stream via stdin (expects pre-flipped BGR frames)."""
+    """Start RTSP stream via FFmpeg stdin."""
     cmd = [
         "ffmpeg",
         "-f", "rawvideo",
@@ -24,6 +26,7 @@ def start_ffmpeg_stream():
         "-s", "640x480",
         "-r", "30",
         "-i", "-",  # stdin
+        "-vf", "transpose=1",  # rotate 90° clockwise
         "-vcodec", "libx264",
         "-preset", "ultrafast",
         "-tune", "zerolatency",
@@ -32,18 +35,19 @@ def start_ffmpeg_stream():
     ]
     return subprocess.Popen(cmd, stdin=subprocess.PIPE)
 
-
 def start_recording():
-    """Start recording to MP4 file (expects pre-flipped BGR frames)."""
+    """Start recording to MP4 file flipped upside-down."""
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = os.path.join(RECORDINGS_DIR, f"record_{ts}.mp4")
     cmd = [
         "ffmpeg",
+        "-y",  # overwrite existing files
         "-f", "rawvideo",
         "-pix_fmt", "bgr24",
         "-s", "640x480",
         "-r", "30",
         "-i", "-",  # stdin
+        "-vf", "vflip",  # upside-down
         "-vcodec", "libx264",
         "-preset", "ultrafast",
         "-tune", "zerolatency",
@@ -54,17 +58,19 @@ def start_recording():
     return proc, filename
 
 def stop_recording(proc):
+    """Stop recording and flush file to disk."""
     print("🛑 Stopping recording...", flush=True)
-    proc.stdin.close()
+    if proc and proc.stdin:
+        proc.stdin.close()
     proc.wait()
-    # Turn Kinect LED off
-    freenect.set_led(freenect.LED_OFF)
-    freenect.update_led()
+
+# --- Main loop ---
 
 def main():
     print("🤖 Kinect streamer starting...", flush=True)
     ffmpeg_proc = start_ffmpeg_stream()
     recording_proc = None
+    recording_filename = None
     triggered = False
     last_trigger_time = 0
 
@@ -77,49 +83,44 @@ def main():
                 time.sleep(0.1)
                 continue
 
-            # Flip frame upside-down and convert RGB→BGR
-rgb_frame_bgr = np.ascontiguousarray(rgb_frame[::-1, :, ::-1])
-
-# Send to RTSP
-ffmpeg_proc.stdin.write(rgb_frame_bgr.tobytes())
-
-# Send to recording if active
-if recording_proc:
-    recording_proc.stdin.write(rgb_frame_bgr.tobytes())
-    
-            # Write to RTSP stream
+            # Write to RTSP
             try:
-                ffmpeg_proc.stdin.write(rgb_frame_bgr.tobytes())
+                ffmpeg_proc.stdin.write(rgb_frame.tobytes())
             except BrokenPipeError:
-                print("⚠️ FFmpeg RTSP pipe broken.", flush=True)
+                print("⚠️ FFmpeg RTSP pipe broken", flush=True)
                 break
 
-            # Depth check
+            # Check depth for motion trigger
             min_depth = np.min(depth_frame)
             avg_depth = np.mean(depth_frame)
+            # Logging depth for debugging
             print(f"Depth min: {min_depth:.0f} mm, avg: {avg_depth:.1f} mm", flush=True)
 
-            # Start recording
             if min_depth < DEPTH_THRESHOLD and not triggered:
+                # Start recording
                 triggered = True
                 last_trigger_time = time.time()
-                recording_proc, _ = start_recording()
+                recording_proc, recording_filename = start_recording()
+                # TODO: set LED red here
 
-            # Stop recording
             elif triggered and min_depth > DEPTH_THRESHOLD:
+                # Check minimum event duration
                 if time.time() - last_trigger_time > MIN_EVENT_DURATION:
                     triggered = False
                     if recording_proc:
                         stop_recording(recording_proc)
                         recording_proc = None
+                        recording_filename = None
+                        # TODO: set LED off here
 
             # Write to recording if active
             if recording_proc:
                 try:
-                    recording_proc.stdin.write(rgb_frame_bgr.tobytes())
+                    recording_proc.stdin.write(rgb_frame.tobytes())
                 except BrokenPipeError:
-                    print("⚠️ FFmpeg recording pipe broken.", flush=True)
+                    print("⚠️ Recording pipe broken", flush=True)
                     recording_proc = None
+                    recording_filename = None
 
             time.sleep(1/30)  # ~30 FPS
 
